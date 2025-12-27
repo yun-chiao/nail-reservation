@@ -2,315 +2,564 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>預約服務</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>握手手工作室</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        /* n8n 風格：極簡、灰白、科技綠 */
         :root {
-            --primary-color: #12bb6a; /* n8n 的綠色 */
-            --bg-color: #f4f5f7;
-            --card-bg: #ffffff;
-            --text-main: #222222;
-            --text-sub: #666666;
-            --border-color: #e0e0e0;
+            --primary-color: #758d71;  /* 主色：莫蘭迪綠 */
+            --primary-dark: #5e715b;   /* 深色：按壓時的深綠 */
+            --primary-light-bg: #eff5ee; /* 淺色：選取時的背景淡綠 */
+            --text-main: #333333;
+            --text-sub: #888888;
+            --bg-body: #f2f2f2; /* 電腦版背景色 */
+            --bg-app: #ffffff;  /* 手機版背景色 */
+            --border-color: #eeeeee;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-color);
             margin: 0;
-            padding: 20px;
-            color: var(--text-main);
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
             display: flex;
             justify-content: center;
+            min-height: 100vh;
         }
 
-        .container {
+        /* 模擬手機外框 */
+        #app-frame {
             width: 100%;
-            max-width: 480px;
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
+            max-width: 430px; /* 限制最大寬度像手機 */
+            background-color: var(--bg-app);
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow-x: hidden;
+            padding-bottom: 80px; /* 留給底部按鈕空間 */
         }
 
-        /* 標題區塊 */
-        header {
-            margin-bottom: 25px;
+        /* 隱藏捲軸但保留功能 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* --- UI 元件 --- */
+        h2, h3, h4 { margin: 0; font-weight: 600; }
+       
+        .hidden { display: none !important; }
+
+        /* 頂部導航列模擬 */
+        .nav-bar {
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            z-index: 90;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .nav-back {
+            position: absolute;
+            left: 15px;
+            font-size: 20px;
+            padding: 5px 10px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        /* Hero Image */
+        .hero-img {
+            width: 100%;
+            height: 220px; /* 手機上較為適中的高度 */
+            background-position: center;
+            background-size: cover;
+            background-color: #eee;
+            background-image: url('https://via.placeholder.com/430x220?text=Studio+Image'); /* 這裡換你的圖 */
+        }
+
+        /* 內容容器 */
+        .content-box {
+            padding: 20px;
+        }
+
+        /* 店家資訊卡 */
+        .shop-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
         }
 
-        h2 {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 0;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        /* 模擬節點圖示 */
-        .icon-node {
-            width: 12px;
-            height: 12px;
-            background-color: var(--primary-color);
+        .avatar {
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 4px rgba(18, 187, 106, 0.2);
-        }
-
-        /* 表單元件 */
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-sub);
-            margin-bottom: 8px;
-            margin-top: 20px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px 15px;
-            background-color: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 15px;
-            color: var(--text-main);
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-        }
-
-        input:focus, select:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(18, 187, 106, 0.1);
-        }
-
-        /* 唯讀欄位樣式 */
-        input[readonly] {
-            background-color: #f9fafb;
-            color: #888;
-            cursor: not-allowed;
-        }
-
-        /* 圖片上傳區 - 模擬拖曳區塊 */
-        .file-upload-wrapper {
-            position: relative;
-            width: 100%;
-            height: 120px;
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
+            background: #eee;
+            flex-shrink: 0;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: #fafafa;
-            cursor: pointer;
-            transition: 0.2s;
-            overflow: hidden;
+            font-size: 12px;
+            color: #999;
         }
 
-        .file-upload-wrapper:hover {
-            border-color: var(--primary-color);
-            background-color: #f0fdf4;
+        /* 規則列表 */
+        .rule-item {
+            margin-bottom: 24px;
         }
-
-        .file-upload-text {
-            color: var(--text-sub);
+        .rule-title {
+            font-size: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .rule-desc {
             font-size: 13px;
-            margin-top: 8px;
+            color: var(--text-sub);
+            line-height: 1.5;
+            padding-left: 24px; /* 對齊 icon 後面 */
         }
+        .highlight { color: #E53935; } /* 警告紅 */
 
-        #fileInput {
-            position: absolute;
+        /* 底部按鈕 */
+        .bottom-action {
+            position: fixed;
+            bottom: 0;
+            left: 50%; /* 配合 max-width 置中 */
+            transform: translateX(-50%);
             width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
+            max-width: 430px;
+            background: #fff;
+            padding: 10px 20px 20px 20px; /* iPhone X 底部安全距離 */
+            border-top: 1px solid var(--border-color);
+            z-index: 100;
         }
 
-        .preview-img {
-            max-height: 100%;
-            max-width: 100%;
-            object-fit: contain;
-            display: none;
-            z-index: 2;
-        }
-
-        /* 按鈕樣式 */
-        button {
+        .btn-primary {
             width: 100%;
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 14px;
-            margin-top: 30px;
-            border-radius: 6px;
+            border-radius: 8px; /* 圓角更像 App */
+            height: 50px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
+            box-shadow: 0 4px 10px rgba(214, 168, 147, 0.4);
+            transition: transform 0.1s;
+        }
+        .btn-primary:active { transform: scale(0.98); background-color: var(--primary-dark); }
+
+        /* 表單樣式 */
+        .form-section { margin-bottom: 25px; }
+        .label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 10px;
+            display: block;
+        }
+       
+        .input-box {
+            width: 100%;
+            height: 48px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0 15px;
+            font-size: 15px;
+            background: #fafafa;
+            outline: none;
+        }
+        .input-box:focus { border-color: var(--primary-color); background: #fff; }
+
+        /* 選項按鈕群 (取代傳統 checkbox) */
+        .tag-container {
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-wrap: wrap;
+            row-gap: 20px;
+            column-gap: 10px;
         }
-
-        button:hover {
-            background-color: #0ea35c;
-        }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        .loading-spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid #ffffff;
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
+        .tag-checkbox {
             display: none;
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .tag-label {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .tag-checkbox:checked + .tag-label {
+            background: var(--primary-light-bg);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(117, 141, 113, 0.2);
         }
 
+        /* 檔案上傳 */
+        .upload-box {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            cursor: pointer;
+            background: #fafafa;
+        }
+
+        /* 日曆 */
+        .calendar-wrapper {
+            background: #fff;
+            border-radius: 12px;
+            /* border: 1px solid #eee; */
+            padding: 10px 0;
+        }
+        .cal-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px 15px 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            row-gap: 15px; /* 加大行距 */
+            text-align: center;
+        }
+        .cal-day-name {
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+        .cal-date {
+            width: 36px;
+            height: 36px;
+            line-height: 36px;
+            margin: 0 auto;
+            border-radius: 50%;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .cal-date.selected {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        /* 時間按鈕 */
+        .time-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .time-btn {
+            text-align: center;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-main);
+            background: #fff;
+        }
+        .time-btn.active {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--primary-light-bg);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h2><span class="icon-node"></span> 預約資料填寫</h2>
-    </header>
-
-    <form id="bookingForm">
-        <label>客戶名稱</label>
-        <input type="text" id="name" placeholder="讀取中..." readonly>
-        <input type="hidden" id="userId">
-
-        <label>預約日期</label>
-        <input type="date" id="date" required>
-
-        <label>預約時間</label>
-        <input type="time" id="time" required>
-
-        <label>服務項目</label>
-        <select id="service" required>
-            <option value="" disabled selected>請選擇服務項目</option>
-            <option value="手部單色 $1000">手部單色 $1000</option>
-            <option value="手部造型 $1500起">手部造型 $1500起</option>
-            <option value="足部深層保養 $1800">足部深層保養 $1800</option>
-            <option value="卸甲重做">卸甲重做</option>
-        </select>
-
-        <label>參考圖片 (選填)</label>
-        <div class="file-upload-wrapper" id="uploadBox">
-            <span class="file-upload-text">點擊上傳圖片</span>
-            <input type="file" id="fileInput" accept="image/*">
-            <img id="preview" class="preview-img" alt="預覽">
+<div id="app-frame">
+   
+    <div id="page-home">
+        <div class="nav-bar">
+            <span>握手手工作室</span>
+            <div style="position:absolute; right:15px; font-size:20px;">✕</div>
         </div>
 
-        <button type="submit" id="submitBtn">
-            <div class="loading-spinner" id="spinner"></div>
-            <span id="btnText">確認送出</span>
-        </button>
-    </form>
+        <div class="hero-img"></div>
+
+        <div class="content-box">
+            <div class="shop-header">
+                <div class="avatar">Logo</div>
+                <div>
+                    <h3 style="margin-bottom: 4px;">握手手美甲</h3>
+                    <div style="font-size: 12px; color: var(--text-sub);">線上預約系統</div>
+                </div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-title">✅ 訂金制度</div>
+                <div class="rule-desc">
+                    首次預約需收 NT$1,000。<br>
+                    <span class="highlight">遲到 15 分鐘或 24hr 內取消不退款。</span>
+                </div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-title">✅ 預約須知</div>
+                <div class="rule-desc">
+                    請使用自助系統操作更改或取消。<br>
+                    店內有貓🐱，過敏者請斟酌。
+                </div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-title">📍 地址</div>
+                <div class="rule-desc">台北市大安區羅斯福路三段61號6樓</div>
+            </div>
+           
+            <div style="height: 60px;"></div>
+        </div>
+
+        <div class="bottom-action">
+            <button class="btn-primary" onclick="navTo('page-booking')">開始預約</button>
+        </div>
+    </div>
+
+    <div id="page-booking" class="hidden">
+        <div class="nav-bar">
+            <div class="nav-back" onclick="navTo('page-home')">‹</div>
+            <span>預約資料</span>
+        </div>
+
+        <div class="content-box">
+            <div class="form-section">
+                <label class="label">預約姓名</label>
+                <input type="text" id="userName" class="input-box" placeholder="讀取中..." readonly style="color: #666;">
+            </div>
+
+            <div class="form-section">
+                <label class="label">預約項目 (可多選)</label>
+                <div class="tag-container">
+                    <label>
+                        <input type="checkbox" name="service" value="單色凝膠" class="tag-checkbox">
+                        <span class="tag-label">單色凝膠</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="service" value="造型設計" class="tag-checkbox">
+                        <span class="tag-label">造型設計</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="service" value="卸甲續作" class="tag-checkbox">
+                        <span class="tag-label">卸甲續作</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="service" value="純卸甲" class="tag-checkbox">
+                        <span class="tag-label">純卸甲</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" name="service" value="深層保養" class="tag-checkbox">
+                        <span class="tag-label">深層保養</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <label class="label">參考圖 (選填)</label>
+                <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 24px; margin-bottom: 5px;">📷</div>
+                    點擊上傳圖片
+                </div>
+                <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="previewFile(this)">
+                <div id="fileNameDisplay" style="margin-top:5px; font-size:12px; color:var(--primary-color);"></div>
+            </div>
+
+            <div class="form-section">
+                <label class="label">選擇時間</label>
+                <div class="calendar-wrapper">
+                    <div class="cal-header">
+                        <span onclick="changeMonth(-1)">‹</span>
+                        <span id="calMonthYear">1月 2026</span>
+                        <span onclick="changeMonth(1)">›</span>
+                    </div>
+                   
+                    <div class="cal-grid" style="margin-bottom: 10px;">
+                        <div class="cal-day-name">日</div><div class="cal-day-name">一</div><div class="cal-day-name">二</div>
+                        <div class="cal-day-name">三</div><div class="cal-day-name">四</div><div class="cal-day-name">五</div><div class="cal-day-name">六</div>
+                    </div>
+                   
+                    <div class="cal-grid" id="calDays"></div>
+
+                    <div id="timeSection" class="hidden">
+                        <div style="margin-top: 15px; font-size: 13px; color: var(--text-sub); text-align: center;">可預約時段</div>
+                        <div class="time-grid" id="timeSlotContainer">
+                            <div class="time-btn" onclick="selectTime(this, '11:00')">11:00</div>
+                            <div class="time-btn" onclick="selectTime(this, '14:30')">14:30</div>
+                            <div class="time-btn" onclick="selectTime(this, '16:00')">16:00</div>
+                            <div class="time-btn" onclick="selectTime(this, '19:00')">19:00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="height: 60px;"></div>
+        </div>
+
+        <div class="bottom-action">
+            <button class="btn-primary" onclick="submitForm()">確認預約</button>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    // ⚠️ 設定區：請在這裡填入你的資料
-    const MY_LIFF_ID = "2008142927-MCzG75Co"; 
-    const N8N_WEBHOOK_URL = "https://yunchiao.app.n8n.cloud/webhook-test/reservation"; 
+    // --- LIFF 初始化 ---
+    const LIFF_ID = "YOUR_LIFF_ID";
+   
+    window.onload = function() {
+        // 日曆初始化
+        renderCalendar(currentYear, currentMonth);
 
-    // 初始化 LIFF
-    liff.init({ liffId: MY_LIFF_ID }).then(() => {
-        if (!liff.isLoggedIn()) {
-            liff.login();
-        } else {
-            liff.getProfile().then(profile => {
-                document.getElementById('name').value = profile.displayName;
-                document.getElementById('userId').value = profile.userId;
-            });
-        }
-    });
-
-    // 圖片預覽邏輯
-    const fileInput = document.getElementById('fileInput');
-    const preview = document.getElementById('preview');
-    const uploadText = document.querySelector('.file-upload-text');
-    let base64Image = "";
-
-    fileInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                uploadText.style.display = 'none'; // 隱藏文字
-                base64Image = e.target.result;
-            }
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // 表單送出
-    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const btn = document.getElementById('submitBtn');
-        const spinner = document.getElementById('spinner');
-        const btnText = document.getElementById('btnText');
-        
-        // 切換按鈕狀態
-        btn.disabled = true;
-        spinner.style.display = 'block';
-        btnText.innerText = "處理中...";
-
-        const data = {
-            name: document.getElementById('name').value,
-            userId: document.getElementById('userId').value,
-            date: document.getElementById('date').value,
-            time: document.getElementById('time').value,
-            service: document.getElementById('service').value,
-            image: base64Image 
-        };
-
+        // LIFF 初始化
         try {
-            await fetch(N8N_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+            liff.init({ liffId: LIFF_ID }).then(() => {
+                if(liff.isLoggedIn()){
+                    liff.getProfile().then(p => {
+                        document.getElementById('userName').value = p.displayName;
+                    });
+                } else {
+                    liff.login();
+                }
+            }).catch(e => {
+                console.log(e);
+                document.getElementById('userName').value = "測試用戶";
             });
-
-            if (liff.isInClient()) {
-                // 回傳漂亮的預約成功訊息
-                await liff.sendMessages([{
-                    type: 'text',
-                    text: `✅ 預約申請已送出！\n\n📅 日期：${data.date}\n⏰ 時間：${data.time}\n💅 項目：${data.service}\n\n小幫手會盡快確認並回覆您！`
-                }]);
-                liff.closeWindow();
-            }
-        } catch (error) {
-            alert("發生錯誤，請檢查網路連線");
-            btn.disabled = false;
-            spinner.style.display = 'none';
-            btnText.innerText = "確認送出";
+        } catch(e) {
+            document.getElementById('userName').value = "測試用戶";
         }
-    });
-</script>
+    }
 
+    // --- 導航 ---
+    function navTo(pageId) {
+        document.getElementById('page-home').classList.add('hidden');
+        document.getElementById('page-booking').classList.add('hidden');
+        document.getElementById(pageId).classList.remove('hidden');
+        window.scrollTo(0,0);
+    }
+
+    // --- 檔案預覽 ---
+    function previewFile(input) {
+        if(input.files && input.files[0]) {
+            document.getElementById('fileNameDisplay').innerText = "已選擇: " + input.files[0].name;
+            document.querySelector('.upload-box').style.borderColor = "var(--primary-color)";
+            document.querySelector('.upload-box').style.color = "var(--primary-color)";
+        }
+    }
+
+    // --- 日曆邏輯 ---
+    let currentYear = 2026;
+    let currentMonth = 0; // Jan
+    let selectedDateObj = null;
+    let selectedTimeStr = null;
+
+    function renderCalendar(year, month) {
+        const date = new Date(year, month, 1);
+        document.getElementById('calMonthYear').innerText = `${date.getFullYear()}年 ${date.getMonth()+1}月`;
+       
+        const daysContainer = document.getElementById('calDays');
+        daysContainer.innerHTML = "";
+       
+        const firstDayIndex = date.getDay();
+        const lastDay = new Date(year, month + 1, 0).getDate();
+
+        // 空白格
+        for(let i=0; i<firstDayIndex; i++) {
+            daysContainer.innerHTML += `<div></div>`;
+        }
+
+        // 日期格
+        for(let i=1; i<=lastDay; i++) {
+            const div = document.createElement('div');
+            div.className = 'cal-date';
+            div.innerText = i;
+            div.onclick = () => selectDate(div, i);
+           
+            // 保持選取狀態
+            if(selectedDateObj && selectedDateObj.getDate() === i && selectedDateObj.getMonth() === month) {
+                div.classList.add('selected');
+            }
+            daysContainer.appendChild(div);
+        }
+    }
+
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if(currentMonth > 11) { currentMonth=0; currentYear++; }
+        else if(currentMonth < 0) { currentMonth=11; currentYear--; }
+        renderCalendar(currentYear, currentMonth);
+    }
+
+    function selectDate(el, day) {
+        document.querySelectorAll('.cal-date').forEach(d => d.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedDateObj = new Date(currentYear, currentMonth, day);
+        selectedTimeStr = null; // 重選日期後清空時間
+       
+        // 顯示時間區塊
+        document.getElementById('timeSection').classList.remove('hidden');
+        document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    function selectTime(el, time) {
+        document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+        el.classList.add('active');
+        selectedTimeStr = time;
+    }
+
+    // --- 送出 ---
+    function submitForm() {
+        const name = document.getElementById('userName').value;
+       
+        // 取得勾選項目
+        let services = [];
+        document.querySelectorAll('input[name="service"]:checked').forEach(cb => {
+            services.push(cb.value);
+        });
+
+        if(services.length === 0) return alert("請選擇服務項目");
+        if(!selectedDateObj || !selectedTimeStr) return alert("請選擇日期與時間");
+
+        const dateStr = `${selectedDateObj.getFullYear()}/${selectedDateObj.getMonth()+1}/${selectedDateObj.getDate()}`;
+        const hasFile = document.getElementById('fileInput').files.length > 0;
+
+        const msg = `【預約資料】\n姓名：${name}\n日期：${dateStr}\n時間：${selectedTimeStr}\n項目：${services.join('、')}\n${hasFile ? '(有附參考圖)' : ''}`;
+
+        if (liff.isInClient()) {
+            liff.sendMessages([{ type: 'text', text: msg }])
+                .then(() => liff.closeWindow())
+                .catch(err => alert("發送錯誤"));
+        } else {
+            alert("預覽發送內容：\n\n" + msg);
+        }
+    }
+</script>
 </body>
 </html>
