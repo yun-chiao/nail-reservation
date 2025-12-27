@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美甲預約單</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        /* 簡單的粉色系美甲風格樣式 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #fff0f5; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #d63384; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #666; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input:focus, select:focus { border-color: #d63384; outline: none; }
+        
+        /* 圖片上傳區塊 */
+        .file-upload { margin-top: 5px; padding: 10px; border: 2px dashed #ddd; border-radius: 8px; text-align: center; }
+        .preview-img { max-width: 100%; margin-top: 10px; border-radius: 8px; display: none; }
+        
+        button { width: 100%; background-color: #d63384; color: white; border: none; padding: 15px; margin-top: 25px; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:disabled { background-color: #ccc; }
+        button:active { background-color: #b02a6b; }
+        .loading { display: none; text-align: center; margin-top: 10px; color: #d63384; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💅 預約美甲</h2>
+    <form id="bookingForm">
+        <label>您的暱稱</label>
+        <input type="text" id="name" placeholder="讀取中..." readonly>
+        <input type="hidden" id="userId"> <label>預約日期</label>
+        <input type="date" id="date" required>
+
+        <label>預約時間</label>
+        <input type="time" id="time" required>
+
+        <label>服務項目</label>
+        <select id="service" required>
+            <option value="" disabled selected>請選擇項目</option>
+            <option value="手部單色 $1000">手部單色 $1000</option>
+            <option value="手部造型 $1500起">手部造型 $1500起</option>
+            <option value="足部深層保養 $1800">足部深層保養 $1800</option>
+            <option value="卸甲重做">卸甲重做</option>
+        </select>
+
+        <label>參考圖 (選填)</label>
+        <div class="file-upload">
+            <input type="file" id="fileInput" accept="image/*">
+            <img id="preview" class="preview-img" alt="圖片預覽">
+        </div>
+
+        <button type="submit" id="submitBtn">送出預約</button>
+        <div class="loading" id="loadingMsg">資料傳送中，請稍候...</div>
+    </form>
+</div>
+
+<script>
+    // ⚠️ 設定區：請在這裡填入你的資料
+    const MY_LIFF_ID = "你的_LIFF_ID"; 
+    const N8N_WEBHOOK_URL = "https://yunchiao.app.n8n.cloud/webhook-test/reservation"; 
+
+    // 初始化 LIFF
+    liff.init({ liffId: MY_LIFF_ID }).then(() => {
+        if (!liff.isLoggedIn()) {
+            liff.login();
+        } else {
+            // 取得用戶資料
+            liff.getProfile().then(profile => {
+                document.getElementById('name').value = profile.displayName;
+                document.getElementById('userId').value = profile.userId;
+            });
+        }
+    });
+
+    // 圖片預覽功能
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    let base64Image = ""; // 用來存圖片編碼
+
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                base64Image = e.target.result; // 存入 Base64 字串
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 表單送出處理
+    document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loadingMsg');
+        btn.disabled = true;
+        btn.innerText = "處理中...";
+        loading.style.display = 'block';
+
+        const data = {
+            name: document.getElementById('name').value,
+            userId: document.getElementById('userId').value,
+            date: document.getElementById('date').value,
+            time: document.getElementById('time').value,
+            service: document.getElementById('service').value,
+            image: base64Image // 這是那一長串的圖片碼
+        };
+
+        try {
+            // 傳送資料給 n8n
+            await fetch(N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            // 成功後關閉視窗並發送訊息
+            if (liff.isInClient()) {
+                await liff.sendMessages([{
+                    type: 'text',
+                    text: `我已送出預約！\n📅 日期：${data.date}\n⏰ 時間：${data.time}\n💅 項目：${data.service}`
+                }]);
+                liff.closeWindow();
+            }
+        } catch (error) {
+            alert("發生錯誤，請稍後再試！");
+            btn.disabled = false;
+            btn.innerText = "送出預約";
+            loading.style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>
